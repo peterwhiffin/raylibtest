@@ -1,103 +1,109 @@
-/*******************************************************************************************
-*
-*   raylib [models] example - loading gltf with animations
-*
-*   Example complexity rating: [★☆☆☆] 1/4
-*
-*   LIMITATIONS:
-*     - Only supports 1 armature per file, and skips loading it if there are multiple armatures
-*     - Only supports linear interpolation (default method in Blender when checked
-*       "Always Sample Animations" when exporting a GLTF file)
-*     - Only supports translation/rotation/scale animation channel.path,
-*       weights not considered (i.e. morph targets)
-*
-*   Example originally created with raylib 3.7, last time updated with raylib 4.2
-*
-*   Example licensed under an unmodified zlib/libpng license, which is an OSI-certified,
-*   BSD-like license that allows static linking with closed source software
-*
-*   Copyright (c) 2020-2025 Ramon Santamaria (@raysan5)
-*
-********************************************************************************************/
-
 #include "raylib.h"
+#include "raymath.h"
+#include "rcamera.h"
+#include "string.h"
 
-//------------------------------------------------------------------------------------
-// Program main entry point
-//------------------------------------------------------------------------------------
-int main(void)
-{
-    // Initialization
-    //--------------------------------------------------------------------------------------
+#define RLIGHTS_IMPLEMENTATION
+#include "rlights.h";
+
+typedef enum PlayerState{
+    IDLE,
+    WALK,
+    SPRINT,
+    JUMP
+} PlayerState;
+
+// typedef struct Transform {
+//     Vector3 position;
+//     Vector3 rotation;
+//     Vector3 scalel;
+//     Matrix transform;
+// } Transform;
+
+typedef struct Player {
+    Transform transform;
+    Vector3 velocity;
+    PlayerState state;
+} Player;
+
+int main(void){
+
     const int screenWidth = 800;
-    const int screenHeight = 450;
-
-    InitWindow(screenWidth, screenHeight, "raylib [models] example - loading gltf animations");
-
-    // Define the camera to look into our 3d world
-    Camera camera = { 0 };
-    camera.position = (Vector3){ 6.0f, 6.0f, 6.0f };    // Camera position
-    camera.target = (Vector3){ 0.0f, 2.0f, 0.0f };      // Camera looking at point
-    camera.up = (Vector3){ 0.0f, 1.0f, 0.0f };          // Camera up vector (rotation towards target)
-    camera.fovy = 45.0f;                                // Camera field-of-view Y
-    camera.projection = CAMERA_PERSPECTIVE;             // Camera projection type
-
-    // Load gltf model
-    Model model = LoadModel("X:/Repos/RaylibGameTest/Resources/Handys.m3d");
-    Vector3 position = { 0.0f, 0.0f, 0.0f }; // Set model position
+    const int screenHeight = 600;
+    //char resourcePath[128] = "x:/repos/raylibtest/resources/";
+    const Color clearColor = {98, 110, 175, 255};
     
-    // Load gltf model animations
-    int animsCount = 0;
-    unsigned int animIndex = 0;
-    unsigned int animCurrentFrame = 0;
-    ModelAnimation *modelAnimations = LoadModelAnimations("X:/Repos/RaylibGameTest/Resources/Handys.m3d", &animsCount);
+    SetConfigFlags(FLAG_MSAA_4X_HINT);
+    InitWindow(screenWidth, screenHeight, "Pete's House");
 
-    DisableCursor();
-    SetTargetFPS(60);                   // Set our game to run at 60 frames-per-second
-    //--------------------------------------------------------------------------------------
+    Camera camera = { 0 };
+    camera.fovy = 67;
+    camera.position = (Vector3){0.0f, 1.0f, 0.0f};
+    camera.projection = CAMERA_PERSPECTIVE;
+    camera.up = (Vector3){0.0f, 1.0f, 0.0f};
+    camera.target = (Vector3){0.0f, 0.0f, 2.0f};
 
-    // Main game loop
-    while (!WindowShouldClose())        // Detect window close button or ESC key
-    {
-        // Update
-        //----------------------------------------------------------------------------------
-        UpdateCamera(&camera, CAMERA_FREE);
+    Shader shader = LoadShader("x:/repos/raylibtest/resources/lighting.vs", "x:/repos/raylibtest/resources/lighting.fs");
+    shader.locs[SHADER_LOC_VECTOR_VIEW] = GetShaderLocation(shader, "viewPos");
 
-        // Select current animation
-        if (IsMouseButtonPressed(MOUSE_BUTTON_RIGHT)) animIndex = (animIndex + 1)%animsCount;
-        else if (IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) animIndex = (animIndex + animsCount - 1)%animsCount;
+    int ambientLoc = GetShaderLocation(shader, "ambient");
+    SetShaderValue(shader, ambientLoc, (float[4]){ 0.1f, 0.1f, 0.1f, 1.0f }, SHADER_UNIFORM_VEC4);
 
-        // Update model animation
-        ModelAnimation anim = modelAnimations[animIndex];
-        animCurrentFrame = (animCurrentFrame + 1)%anim.frameCount;
-        UpdateModelAnimation(model, anim, animCurrentFrame);
-        //----------------------------------------------------------------------------------
+    Light lights[MAX_LIGHTS] = { 0 };
+    //lights[0] = CreateLight(LIGHT_POINT, (Vector3){ -1, 1, -1}, Vector3Zero(), YELLOW, shader);
+    //lights[1] = CreateLight(LIGHT_POINT, (Vector3){ 1, 1, 1}, Vector3Zero(), RED, shader);
+    //lights[2] = CreateLight(LIGHT_POINT, (Vector3){ -1, 1, 1}, Vector3Zero(), PURPLE, shader);
+    //lights[3] = CreateLight(LIGHT_POINT, (Vector3){ 1, 1, -1}, Vector3Zero(), WHITE, shader);
+    Light sunlight = CreateLight(LIGHT_DIRECTIONAL, (Vector3){30.0f, 200.0f, 5.0f}, (Vector3){0.0f, 0.0f, 0.0f}, WHITE, shader);
 
-        // Draw
-        //----------------------------------------------------------------------------------
-        BeginDrawing();
 
-            ClearBackground(RAYWHITE);
+    Model house = LoadModel("x:/repos/raylibtest/resources/TestWorld.m3d");
+    Model mountains = LoadModel("x:/repos/raylibtest/resources/MountainSkybox.obj");
+    Texture2D mountainTex = LoadTexture("x:/repos/raylibtest/resources/Skybox_Diff.png");
+    SetMaterialTexture(&mountains.materials[0], MATERIAL_MAP_DIFFUSE, mountainTex);
+    Vector3 housePosition = (Vector3) {0.0f, 0.0f, 0.0f};
+    Vector3 mountainPosition = (Vector3) {0.0f, 150.0f, 0.0f};
 
-            BeginMode3D(camera);
-                DrawModel(model, position, 1.0f, WHITE);    // Draw animated model
-                DrawGrid(10, 1.0f);
-            EndMode3D();
-
-            DrawText("Use the LEFT/RIGHT mouse buttons to switch animation", 10, 10, 20, GRAY);
-            DrawText(TextFormat("Animation: %s", anim.name), 10, GetScreenHeight() - 20, 10, DARKGRAY);
-
-        EndDrawing();
-        //----------------------------------------------------------------------------------
+    //house.materials[0].shader = shader;
+    mountains.materials[0].shader = shader;
+    for(int i = 0; i < house.materialCount; i++){
+        house.materials[i].shader = shader;
     }
 
-    // De-Initialization
-    //--------------------------------------------------------------------------------------
-    UnloadModel(model);         // Unload model and meshes/material
+    DisableCursor();
+    SetTargetFPS(144);
 
-    CloseWindow();              // Close window and OpenGL context
-    //--------------------------------------------------------------------------------------
+    while(!WindowShouldClose()){
+        UpdateCamera(&camera, CAMERA_FREE);
 
-    return 0;
+
+        float cameraPos[3] = { camera.position.x, camera.position.y, camera.position.z };
+        SetShaderValue(shader, shader.locs[SHADER_LOC_VECTOR_VIEW], cameraPos, SHADER_UNIFORM_VEC3);
+
+        // lights[0].position = Vector3Lerp(lights[0].position, camera.position, .001f);
+
+        // for(int i = 0; i < MAX_LIGHTS; i++){
+        //     UpdateLightValues(shader, lights[i]);
+        // }
+    BeginDrawing();
+    ClearBackground(BLACK);
+    BeginMode3D(camera);
+    BeginShaderMode(shader);
+    //DrawPlane(Vector3Zero(), (Vector2) { 10.0, 10.0 }, WHITE);
+    //DrawCube(Vector3Zero(), 2.0, 4.0, 2.0, WHITE);
+    DrawModel(house, housePosition, 25.0f, WHITE);
+    DrawModel(mountains, mountainPosition, .01f, WHITE);
+    EndShaderMode();
+    EndMode3D();
+
+    DrawFPS(10, 10);
+    EndDrawing();
+    }
+
+    UnloadModel(mountains);
+    UnloadModel(house);
+    UnloadShader(shader);
+
+    CloseWindow();
 }
 
