@@ -1,0 +1,11 @@
+{
+    "files.associations": {
+        "raylib.h": "c",
+        "raygui.h": "c",
+        "rcamera.h": "c",
+        "raymath.h": "c",
+        "math.h": "c",
+        "corecrt_math.h": "c",
+        "stdio.h": "c"
+    }
+}

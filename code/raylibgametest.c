@@ -36,6 +36,7 @@ int main(void){
     SetConfigFlags(FLAG_MSAA_4X_HINT);
     InitWindow(screenWidth, screenHeight, "Pete's House");
 
+
     Camera camera = { 0 };
     camera.fovy = 67;
     camera.position = (Vector3){0.0f, 1.0f, 0.0f};
@@ -52,9 +53,9 @@ int main(void){
     Light lights[MAX_LIGHTS] = { 0 };
     //lights[0] = CreateLight(LIGHT_POINT, (Vector3){ -1, 1, -1}, Vector3Zero(), YELLOW, shader);
     //lights[1] = CreateLight(LIGHT_POINT, (Vector3){ 1, 1, 1}, Vector3Zero(), RED, shader);
-    //lights[2] = CreateLight(LIGHT_POINT, (Vector3){ -1, 1, 1}, Vector3Zero(), PURPLE, shader);
+    //lights[0] = CreateLight(LIGHT_POINT, (Vector3){ -1, 1, 1}, Vector3Zero(), PURPLE, shader);
     //lights[3] = CreateLight(LIGHT_POINT, (Vector3){ 1, 1, -1}, Vector3Zero(), WHITE, shader);
-    Light sunlight = CreateLight(LIGHT_DIRECTIONAL, (Vector3){30.0f, 200.0f, 5.0f}, (Vector3){0.0f, 0.0f, 0.0f}, WHITE, shader);
+    //Light sunlight = CreateLight(LIGHT_DIRECTIONAL, (Vector3){30.0f, 200.0f, 5.0f}, (Vector3){0.0f, 0.0f, 0.0f}, WHITE, shader);
 
 
     Model house = LoadModel("x:/repos/raylibtest/resources/TestWorld.m3d");
@@ -80,8 +81,8 @@ int main(void){
         float cameraPos[3] = { camera.position.x, camera.position.y, camera.position.z };
         SetShaderValue(shader, shader.locs[SHADER_LOC_VECTOR_VIEW], cameraPos, SHADER_UNIFORM_VEC3);
 
-        // lights[0].position = Vector3Lerp(lights[0].position, camera.position, .001f);
-
+        //lights[0].position = Vector3Lerp(lights[0].position, camera.position, .001f);
+        //lights[0].attenuation = .3f;
         // for(int i = 0; i < MAX_LIGHTS; i++){
         //     UpdateLightValues(shader, lights[i]);
         // }
