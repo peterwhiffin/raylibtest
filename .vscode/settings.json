@@ -6,6 +6,9 @@
         "raymath.h": "c",
         "math.h": "c",
         "corecrt_math.h": "c",
-        "stdio.h": "c"
+        "stdio.h": "c",
+        "cmath": "c",
+        "rlgl.h": "c",
+        "stdlib.h": "c"
     }
 }
